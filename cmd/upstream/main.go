@@ -2,18 +2,20 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"os"
 	"time"
 )
 
 func main() {
+	slog.SetDefault(slog.New(slog.NewJSONHandler(os.Stdout, nil)))
+
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("/echo", func(w http.ResponseWriter, r *http.Request) {
-		fmt.Printf("upstream: %s %s\n", r.Method, r.URL.Path)
+		slog.Info("upstream request", "method", r.Method, "path", r.URL.Path)
 
 		body, _ := io.ReadAll(r.Body)
 		defer r.Body.Close()
@@ -31,22 +33,22 @@ func main() {
 	})
 
 	mux.HandleFunc("/slow", func(w http.ResponseWriter, r *http.Request) {
-		fmt.Printf("upstream: %s %s\n", r.Method, r.URL.Path)
+		slog.Info("upstream request", "method", r.Method, "path", r.URL.Path)
 		time.Sleep(10 * time.Second)
-		fmt.Println("upstream: slow request done")
+		slog.Info("slow request done")
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(map[string]string{"status": "done"})
 	})
 
 	mux.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
-		fmt.Printf("upstream: %s %s\n", r.Method, r.URL.Path)
+		slog.Info("upstream request", "method", r.Method, "path", r.URL.Path)
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
 	})
 
-	fmt.Println("upstream listening on :8081")
+	slog.Info("upstream listening", "port", 8081)
 	if err := http.ListenAndServe(":8081", mux); err != nil {
-		fmt.Printf("upstream error: %v\n", err)
+		slog.Error("upstream error", "error", err)
 		os.Exit(1)
 	}
 }
