@@ -33,6 +33,7 @@ func main() {
 	mux.HandleFunc("/slow", func(w http.ResponseWriter, r *http.Request) {
 		fmt.Printf("upstream: %s %s\n", r.Method, r.URL.Path)
 		time.Sleep(10 * time.Second)
+		fmt.Println("upstream: slow request done")
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(map[string]string{"status": "done"})
 	})
