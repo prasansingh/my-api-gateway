@@ -1,0 +1,23 @@
+server:
+  port: 8080
+  read-timeout: 5s
+  write-timeout: 10s
+  shutdown: 30s
+
+routes:
+  - path: /api/test
+    rewrite: /
+    upstream: http://localhost:8081
+    timeout: 5s
+  - path: /echo
+    rewrite: /echo
+    upstream: http://localhost:8081
+    timeout: 5s
+  - path: /slow
+    rewrite: /slow
+    upstream: http://localhost:8081
+    timeout: 15s
+  - path: /healthz
+    rewrite: /healthz
+    upstream: http://localhost:8081
+    timeout: 1s
