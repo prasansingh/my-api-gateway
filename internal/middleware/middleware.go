@@ -1,0 +1,14 @@
+package middleware
+
+import "net/http"
+
+// Middleware wraps an http.Handler, returning a new http.Handler.
+type Middleware func(http.Handler) http.Handler
+
+// Chain applies middlewares in order so the first in the list is the outermost wrapper.
+func Chain(h http.Handler, mws ...Middleware) http.Handler {
+	for i := len(mws) - 1; i >= 0; i-- {
+		h = mws[i](h)
+	}
+	return h
+}

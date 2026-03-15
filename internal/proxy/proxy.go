@@ -2,7 +2,7 @@ package proxy
 
 import (
 	"context"
-	"fmt"
+	"log/slog"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/singhprasan/my-api-gateway/internal/config"
+	"github.com/singhprasan/my-api-gateway/internal/middleware"
 )
 
 type route struct {
@@ -35,7 +36,7 @@ func New(routes []config.RouteConfig) *Proxy {
 	for _, r := range sorted {
 		target, err := url.Parse(r.Upstream)
 		if err != nil {
-			fmt.Printf("invalid upstream URL %s: %v\n", r.Upstream, err)
+			slog.Warn("invalid upstream URL", "url", r.Upstream, "error", err)
 			continue
 		}
 
@@ -68,7 +69,9 @@ func New(routes []config.RouteConfig) *Proxy {
 func (p *Proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	for _, rt := range p.routes {
 		if strings.HasPrefix(r.URL.Path, rt.path) {
-			fmt.Printf("%s %s -> upstream (route: %s)\n", r.Method, r.URL.Path, rt.path)
+			if ri := middleware.GetRouteInfo(r.Context()); ri != nil {
+				ri.MatchedRoute = rt.path
+			}
 
 			ctx, cancel := context.WithTimeout(r.Context(), rt.timeout)
 			defer cancel()
@@ -78,7 +81,7 @@ func (p *Proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	fmt.Printf("%s %s -> no matching route\n", r.Method, r.URL.Path)
+	slog.Info("no matching route", "method", r.Method, "path", r.URL.Path)
 	http.NotFound(w, r)
 }
 
