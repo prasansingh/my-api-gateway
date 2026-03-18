@@ -9,6 +9,7 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/singhprasan/my-api-gateway/internal/config"
 	"github.com/singhprasan/my-api-gateway/internal/middleware"
 	"github.com/singhprasan/my-api-gateway/internal/proxy"
@@ -24,7 +25,7 @@ func main() {
 	}
 
 	p := proxy.New(cfg.Routes)
-	handler := middleware.Chain(p, middleware.Logging())
+	handler := middleware.Chain(p, middleware.Logging(), middleware.Metrics())
 
 	srv := &http.Server{
 		Addr:         fmt.Sprintf(":%d", cfg.Server.Port),
@@ -33,11 +34,25 @@ func main() {
 		WriteTimeout: cfg.Server.WriteTimeout.Std(),
 	}
 
+	metricsMux := http.NewServeMux()
+	metricsMux.Handle("/metrics", promhttp.Handler())
+	metricsSrv := &http.Server{
+		Addr:    ":9090",
+		Handler: metricsMux,
+	}
+
 	go func() {
 		slog.Info("gateway listening", "port", cfg.Server.Port)
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			slog.Error("server error", "error", err)
 			os.Exit(1)
+		}
+	}()
+
+	go func() {
+		slog.Info("metrics server listening", "port", 9090)
+		if err := metricsSrv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			slog.Error("metrics server error", "error", err)
 		}
 	}()
 
@@ -52,6 +67,9 @@ func main() {
 
 	if err := srv.Shutdown(ctx); err != nil {
 		slog.Error("shutdown error", "error", err)
+	}
+	if err := metricsSrv.Shutdown(ctx); err != nil {
+		slog.Error("metrics server shutdown error", "error", err)
 	}
 
 	slog.Info("gateway stopped")
