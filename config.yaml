@@ -4,6 +4,10 @@ server:
   write-timeout: 15s
   shutdown: 30s
 
+health:
+  check_interval: 10s
+  check_timeout: 2s
+
 routes:
   - path: /api/test
     rewrite: /

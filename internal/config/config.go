@@ -41,9 +41,15 @@ type RouteConfig struct {
 	Timeout  Duration `yaml:"timeout"`
 }
 
+type HealthConfig struct {
+	CheckInterval Duration `yaml:"check_interval"`
+	CheckTimeout  Duration `yaml:"check_timeout"`
+}
+
 type Config struct {
 	Server ServerConfig  `yaml:"server"`
 	Routes []RouteConfig `yaml:"routes"`
+	Health HealthConfig  `yaml:"health"`
 }
 
 func Load(path string) (*Config, error) {
