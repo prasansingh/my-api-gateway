@@ -11,6 +11,7 @@ import (
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/singhprasan/my-api-gateway/internal/config"
+	"github.com/singhprasan/my-api-gateway/internal/health"
 	"github.com/singhprasan/my-api-gateway/internal/middleware"
 	"github.com/singhprasan/my-api-gateway/internal/proxy"
 )
@@ -34,8 +35,13 @@ func main() {
 		WriteTimeout: cfg.Server.WriteTimeout.Std(),
 	}
 
+	checker := health.New(cfg.Routes, cfg.Health.CheckInterval.Std(), cfg.Health.CheckTimeout.Std())
+	checker.Start()
+
 	metricsMux := http.NewServeMux()
 	metricsMux.Handle("/metrics", promhttp.Handler())
+	metricsMux.HandleFunc("/livez", checker.LivezHandler())
+	metricsMux.HandleFunc("/readyz", checker.ReadyzHandler())
 	metricsSrv := &http.Server{
 		Addr:    ":9090",
 		Handler: metricsMux,
@@ -61,6 +67,7 @@ func main() {
 	<-quit
 
 	slog.Info("shutting down gateway")
+	checker.Stop()
 
 	ctx, cancel := context.WithTimeout(context.Background(), cfg.Server.Shutdown.Std())
 	defer cancel()
