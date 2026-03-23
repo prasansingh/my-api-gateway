@@ -21,7 +21,3 @@ routes:
     rewrite: /slow
     upstream: http://localhost:8081
     timeout: 15s
-  - path: /healthz
-    rewrite: /healthz
-    upstream: http://localhost:8081
-    timeout: 1s

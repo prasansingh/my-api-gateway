@@ -39,6 +39,8 @@ type Checker struct {
 	mu     sync.RWMutex
 	status map[string]*UpstreamStatus
 
+	ctx    context.Context
+	cancel context.CancelFunc
 	stopCh chan struct{}
 }
 
@@ -57,11 +59,15 @@ func New(routes []config.RouteConfig, interval, timeout time.Duration) *Checker 
 		status[u] = &UpstreamStatus{}
 	}
 
+	ctx, cancel := context.WithCancel(context.Background())
+
 	return &Checker{
 		upstreams: upstreams,
 		interval:  interval,
 		timeout:   timeout,
 		status:    status,
+		ctx:       ctx,
+		cancel:    cancel,
 		stopCh:    make(chan struct{}),
 	}
 }
@@ -84,6 +90,7 @@ func (c *Checker) Start() {
 }
 
 func (c *Checker) Stop() {
+	c.cancel()
 	close(c.stopCh)
 }
 
@@ -99,7 +106,7 @@ func (c *Checker) safeCheck() {
 func (c *Checker) check() {
 	for _, upstream := range c.upstreams {
 		start := time.Now()
-		ctx, cancel := context.WithTimeout(context.Background(), c.timeout)
+		ctx, cancel := context.WithTimeout(c.ctx, c.timeout)
 		req, err := http.NewRequestWithContext(ctx, http.MethodGet, upstream+"/healthz", nil)
 		if err != nil {
 			cancel()
