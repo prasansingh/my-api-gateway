@@ -1,4 +1,4 @@
-.PHONY: all build clean test lint vet fmt tidy pre-commit run-gateway run-upstream
+.PHONY: all build build-linux clean test lint vet fmt tidy pre-commit run-gateway run-upstream
 
 all: build
 
@@ -9,6 +9,9 @@ gateway:
 
 upstream:
 	go build -o upstream ./cmd/upstream
+
+build-linux:
+	GOOS=linux GOARCH=amd64 go build -o gateway ./cmd/gateway
 
 clean:
 	rm -f gateway upstream

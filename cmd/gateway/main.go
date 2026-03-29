@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/singhprasan/my-api-gateway/internal/config"
@@ -67,7 +68,13 @@ func main() {
 	<-quit
 
 	slog.Info("shutting down gateway")
-	checker.Stop()
+
+	checker.MarkUnhealthy()
+
+	if d := cfg.Server.DrainWindow.Std(); d > 0 {
+		slog.Info("draining", "window", d)
+		time.Sleep(d)
+	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), cfg.Server.Shutdown.Std())
 	defer cancel()
@@ -78,6 +85,8 @@ func main() {
 	if err := metricsSrv.Shutdown(ctx); err != nil {
 		slog.Error("metrics server shutdown error", "error", err)
 	}
+
+	checker.Stop()
 
 	slog.Info("gateway stopped")
 }
