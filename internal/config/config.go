@@ -32,6 +32,7 @@ type ServerConfig struct {
 	ReadTimeout  Duration `yaml:"read-timeout"`
 	WriteTimeout Duration `yaml:"write-timeout"`
 	Shutdown     Duration `yaml:"shutdown"`
+	DrainWindow  Duration `yaml:"drain-window"`
 }
 
 type RouteConfig struct {

@@ -1,0 +1,14 @@
+[Unit]
+Description=My API Gateway
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/gateway
+WorkingDirectory=/etc/my-api-gateway
+Restart=on-failure
+RestartSec=5s
+TimeoutStopSec=45s
+
+[Install]
+WantedBy=multi-user.target

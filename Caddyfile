@@ -1,0 +1,8 @@
+:80 {
+	reverse_proxy localhost:8080 {
+		health_uri /readyz
+		health_port 9090
+		health_interval 5s
+		health_timeout 3s
+	}
+}

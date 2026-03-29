@@ -36,8 +36,9 @@ type Checker struct {
 	interval  time.Duration
 	timeout   time.Duration
 
-	mu     sync.RWMutex
-	status map[string]*UpstreamStatus
+	mu       sync.RWMutex
+	status   map[string]*UpstreamStatus
+	draining bool
 
 	ctx    context.Context
 	cancel context.CancelFunc
@@ -145,6 +146,13 @@ func (c *Checker) setStatus(upstream string, healthy bool, latency time.Duration
 	c.mu.Unlock()
 }
 
+func (c *Checker) MarkUnhealthy() {
+	c.mu.Lock()
+	c.draining = true
+	c.mu.Unlock()
+	slog.Info("marked unhealthy for graceful drain")
+}
+
 func (c *Checker) LivezHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
@@ -156,6 +164,7 @@ func (c *Checker) LivezHandler() http.HandlerFunc {
 func (c *Checker) ReadyzHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		c.mu.RLock()
+		draining := c.draining
 		upstreams := make(map[string]*UpstreamStatus, len(c.status))
 		allHealthy := true
 		for u, s := range c.status {
@@ -168,7 +177,7 @@ func (c *Checker) ReadyzHandler() http.HandlerFunc {
 
 		status := "ready"
 		code := http.StatusOK
-		if !allHealthy {
+		if draining || !allHealthy {
 			status = "not_ready"
 			code = http.StatusServiceUnavailable
 		}
