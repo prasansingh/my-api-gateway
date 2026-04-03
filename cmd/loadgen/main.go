@@ -30,6 +30,7 @@ func main() {
 	rate := flag.Int("rate", 0, "Requests per second limit (0 = unlimited)")
 	duration := flag.Duration("duration", 0, "Run duration (overrides -n)")
 	timeout := flag.Duration("timeout", 10*time.Second, "Per-request timeout")
+	maxIdle := flag.Int("max-idle", 0, "Max idle connections per host (0 = use -c value)")
 	flag.Parse()
 
 	if *url == "" {
@@ -42,11 +43,16 @@ func main() {
 		os.Exit(1)
 	}
 
+	idlePerHost := *c
+	if *maxIdle > 0 {
+		idlePerHost = *maxIdle
+	}
+
 	client := &http.Client{
 		Timeout: *timeout,
 		Transport: &http.Transport{
-			MaxIdleConns:        *c,
-			MaxIdleConnsPerHost: *c,
+			MaxIdleConns:        idlePerHost,
+			MaxIdleConnsPerHost: idlePerHost,
 			IdleConnTimeout:     90 * time.Second,
 		},
 	}
