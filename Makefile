@@ -1,8 +1,8 @@
-.PHONY: all build build-linux clean test lint vet fmt tidy pre-commit run-gateway run-upstream
+.PHONY: all build build-linux clean test lint vet fmt tidy pre-commit run-gateway run-upstream loadgen
 
 all: build
 
-build: gateway upstream
+build: gateway upstream loadgen
 
 gateway:
 	go build -o gateway ./cmd/gateway
@@ -10,11 +10,14 @@ gateway:
 upstream:
 	go build -o upstream ./cmd/upstream
 
+loadgen:
+	go build -o loadgen ./cmd/loadgen
+
 build-linux:
 	GOOS=linux GOARCH=amd64 go build -o gateway ./cmd/gateway
 
 clean:
-	rm -f gateway upstream
+	rm -f gateway upstream loadgen
 
 test:
 	go test ./...
