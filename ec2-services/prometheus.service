@@ -1,0 +1,17 @@
+[Unit]
+Description=Prometheus Monitoring
+After=network.target
+
+[Service]
+Type=simple
+User=prometheus
+Group=prometheus
+ExecStart=/usr/local/bin/prometheus \
+  --config.file=/etc/prometheus/prometheus.yml \
+  --storage.tsdb.path=/var/lib/prometheus \
+  --web.listen-address=:9091
+Restart=on-failure
+RestartSec=5s
+
+[Install]
+WantedBy=multi-user.target
