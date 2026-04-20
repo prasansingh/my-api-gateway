@@ -2,7 +2,9 @@ package config
 
 import (
 	"fmt"
+	"log/slog"
 	"os"
+	"strings"
 	"time"
 
 	"gopkg.in/yaml.v3"
@@ -47,10 +49,23 @@ type HealthConfig struct {
 	CheckTimeout  Duration `yaml:"check_timeout"`
 }
 
+type DatabaseConfig struct {
+	Host            string   `yaml:"host"`
+	Port            int      `yaml:"port"`
+	User            string   `yaml:"user"`
+	Password        string   `yaml:"password"`
+	DBName          string   `yaml:"dbname"`
+	SSLMode         string   `yaml:"sslmode"`
+	MaxOpenConns    int      `yaml:"max-open-conns"`
+	MaxIdleConns    int      `yaml:"max-idle-conns"`
+	ConnMaxLifetime Duration `yaml:"conn-max-lifetime"`
+}
+
 type Config struct {
-	Server ServerConfig  `yaml:"server"`
-	Routes []RouteConfig `yaml:"routes"`
-	Health HealthConfig  `yaml:"health"`
+	Server   ServerConfig   `yaml:"server"`
+	Routes   []RouteConfig  `yaml:"routes"`
+	Health   HealthConfig   `yaml:"health"`
+	Database DatabaseConfig `yaml:"database"`
 }
 
 func Load(path string) (*Config, error) {
@@ -64,5 +79,19 @@ func Load(path string) (*Config, error) {
 		return nil, fmt.Errorf("parsing config: %w", err)
 	}
 
+	resolveEnvPassword(&cfg)
+
 	return &cfg, nil
+}
+
+func resolveEnvPassword(cfg *Config) {
+	p := cfg.Database.Password
+	if strings.HasPrefix(p, "${") && strings.HasSuffix(p, "}") {
+		envVar := p[2 : len(p)-1]
+		val := os.Getenv(envVar)
+		if val == "" {
+			slog.Warn("database password env var is empty", "var", envVar)
+		}
+		cfg.Database.Password = val
+	}
 }
