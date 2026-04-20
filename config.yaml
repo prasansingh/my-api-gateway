@@ -5,6 +5,17 @@ server:
   shutdown: 30s
   drain-window: 10s
 
+database:
+  host: localhost
+  port: 5432
+  user: gateway
+  password: ${GATEWAY_DB_PASSWORD}
+  dbname: gateway
+  sslmode: disable
+  max-open-conns: 10
+  max-idle-conns: 10
+  conn-max-lifetime: 5m
+
 health:
   check_interval: 10s
   check_timeout: 2s

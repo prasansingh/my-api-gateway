@@ -1,9 +1,10 @@
 [Unit]
 Description=My API Gateway
-After=network.target
+After=network.target postgresql.service
 
 [Service]
 Type=simple
+Environment=GATEWAY_DB_PASSWORD=gatewaypass123
 ExecStart=/usr/local/bin/gateway
 WorkingDirectory=/etc/my-api-gateway
 Restart=on-failure

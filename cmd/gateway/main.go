@@ -12,6 +12,7 @@ import (
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/singhprasan/my-api-gateway/internal/config"
+	"github.com/singhprasan/my-api-gateway/internal/database"
 	"github.com/singhprasan/my-api-gateway/internal/health"
 	"github.com/singhprasan/my-api-gateway/internal/middleware"
 	"github.com/singhprasan/my-api-gateway/internal/proxy"
@@ -26,8 +27,23 @@ func main() {
 		os.Exit(1)
 	}
 
+	db, err := database.New(cfg.Database)
+	if err != nil {
+		slog.Error("failed to connect to database", "error", err)
+		os.Exit(1)
+	}
+	defer db.Close()
+	slog.Info("connected to database",
+		"host", cfg.Database.Host,
+		"max_open_conns", cfg.Database.MaxOpenConns,
+	)
+
 	p := proxy.New(cfg.Routes)
-	handler := middleware.Chain(p, middleware.Logging(), middleware.Metrics())
+	handler := middleware.Chain(p,
+		middleware.Logging(),
+		middleware.Metrics(),
+		middleware.Auth(db),
+	)
 
 	srv := &http.Server{
 		Addr:         fmt.Sprintf(":%d", cfg.Server.Port),
@@ -87,6 +103,7 @@ func main() {
 	}
 
 	checker.Stop()
+	db.Close()
 
 	slog.Info("gateway stopped")
 }
