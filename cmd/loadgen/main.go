@@ -10,10 +10,22 @@ import (
 	"os"
 	"os/signal"
 	"sort"
+	"strings"
 	"sync"
 	"syscall"
 	"time"
 )
+
+type headerFlags []string
+
+func (h *headerFlags) String() string {
+	return strings.Join(*h, ", ")
+}
+
+func (h *headerFlags) Set(value string) error {
+	*h = append(*h, value)
+	return nil
+}
 
 type Result struct {
 	StatusCode int
@@ -31,6 +43,8 @@ func main() {
 	duration := flag.Duration("duration", 0, "Run duration (overrides -n)")
 	timeout := flag.Duration("timeout", 10*time.Second, "Per-request timeout")
 	maxIdle := flag.Int("max-idle", 0, "Max idle connections per host (0 = use -c value)")
+	var headers headerFlags
+	flag.Var(&headers, "header", "Custom header in 'Key: Value' format (repeatable)")
 	flag.Parse()
 
 	if *url == "" {
@@ -95,6 +109,12 @@ func main() {
 					resultCh <- Result{Error: err, Timestamp: time.Now()}
 					reqCancel()
 					continue
+				}
+				for _, h := range headers {
+					parts := strings.SplitN(h, ":", 2)
+					if len(parts) == 2 {
+						req.Header.Set(strings.TrimSpace(parts[0]), strings.TrimSpace(parts[1]))
+					}
 				}
 
 				start := time.Now()
